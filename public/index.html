@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <audio controls autoplay id="myAudio">
+        <source src="assets/The Dreamyard.mp3" type="audio/mpeg">
+    </audio>
+    
+    <meta property="og:title" content="화살 피하기 게임">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="img/썸네일.png">
+    <meta property="og:description" content="화살을 피해 높은 점수를 획득하세요!">
+    <title>화살 피하기 게임</title>
+</head>
+<body>
+    <div id="score_board">
+        <div id="_nickname" style="display: none;"></div>
+        <div class="ranking">
+            <div class="ranking_title">랭킹</div>
+            <div class="ranking_row">
+                <div id="ranking1">데이터가 없습니다.</div> 
+                <div id="ranking1_score"></div>
+            </div>
+            <div class="ranking_row">
+                <div id="ranking2">데이터가 없습니다.</div> 
+                <div id="ranking2_score"></div>
+            </div>
+            <div class="ranking_row">
+                <div id="ranking3">데이터가 없습니다.</div> 
+                <div id="ranking3_score"></div>
+            </div>
+            <div class="ranking_row">
+                <div id="ranking4">데이터가 없습니다.</div> 
+                <div id="ranking4_score"></div>
+            </div>
+            <div class="ranking_row">
+                <div id="ranking5">데이터가 없습니다.</div> 
+                <div id="ranking5_score"></div>
+            </div>
+        </div>
+        <div class="score_container">
+            <div>
+                <p>앗..!🥹 아쉬워요..</p>
+                <div>현재 점수는 <b id="score">50</b>점 입니다 🌟</div>
+            </div>
+            <div onclick="restart()">다시하기</div>
+            <div class="share_container"  onclick="share()">
+                <div class="share_image">
+                    <img src="./img/share.png"/>
+                </div>
+                <div class="share_title">공유하기</div>
+            </div>
+        </div>
+    </div>
+    <div id="nickname-container">
+        <div class="nickname-modal">
+            <div class="nickname_title">닉네임 입력</div>
+            <input class="nickname" type="text" id="nickname" name="nickname" required placeholder="닉네임을 입력하세요" >
+            <button id="start-button" onclick="startGame()">게임 시작</button>
+        </div>
+    </div>
+    <canvas class="canvas" style="display:none;"></canvas>
+    <div class="tutorial_hidden">
+        <img class="show img1" src="/img/튜토리얼1.png" onclick="imageClick(1)"/>
+        <img class="show img2" src="/img/튜토리얼2.png" onclick="imageClick(2)"/>
+        <img class="show img3" src="/img/튜토리얼3.png" onclick="imageClick(3)"/>
+        <img class="show img4" src="/img/튜토리얼4.png" onclick="imageClick(4)"/>
+        <img class="show img5" src="/img/튜토리얼5.png" onclick="imageClick(5)"/>
+        <img class="show img6" src="/img/튜토리얼6.png" onclick="imageClick(6)"/>
+        <img class="show img7" src="/img/튜토리얼7.png" onclick="imageClick(7)"/>
+    </div>
+
+    <script>
+        function share() {
+            alert("URL이 복사되었습니다.")
+
+        }
+         document.addEventListener('click', function() {
+            var audioElement = document.getElementById('myAudio');
+            audioElement.volume = 0.1; // Volume set to 50%
+            audioElement.play()
+        });
+    </script>
+    <script type="module">
+        import * as arrow from "./js/App.js";
+
+        window.imageClick  = function(id) {
+            const nickname = document.getElementById('nickname').value;
+            document.querySelector(".img" + id).className = 'hidden';
+            if(id === 7) {
+                arrow.gameStart(nickname);
+                setCookie("tutorial", true, 7); // 7일 동안 유효한 쿠키 설정
+            }
+            console.log("클릭");
+        }
+
+        function getCookie(name) {
+            let cookieArr = document.cookie.split(";");
+            for(let i = 0; i < cookieArr.length; i++) {
+                let cookiePair = cookieArr[i].split("=");
+                if(name == cookiePair[0].trim()) {
+                    return decodeURIComponent(cookiePair[1]);
+                }
+            }
+            return null;
+        }
+
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                let date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+        }
+
+        window.startGame = function() {
+            // App.js의 게임 초기화 함수 호출 (닉네임을 인자로 전달)
+            const nickname = document.getElementById('nickname').value;
+            if (nickname.trim() !== '') {
+                document.getElementById('nickname-container').style.display = 'none';
+                document.querySelector('.canvas').style.display = 'block';
+                document.querySelector("#_nickname").textContent = nickname;
+
+                if(getCookie("tutorial")) {
+                    arrow.gameStart(nickname);
+                } else {
+                    arrow.tutorial();
+
+                }
+                //arrow.gameStart(nickname);  // 닉네임을 인자로 전달하여 게임 시작
+            } else {
+                alert('닉네임을 입력하세요.');
+            }
+        }
+
+        window.restart = function() {
+            // App.js의 게임 초기화 함수 호출 (닉네임을 인자로 전달)
+            arrow.restart();
+            // 여기에 arrow의 재시작 함수 호출 추가
+        }
+
+    </script>
+</body>
+</html>

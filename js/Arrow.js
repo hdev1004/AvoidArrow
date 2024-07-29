@@ -5,6 +5,7 @@ export class Arrow {
         this.DecreaseOpacity = 0.005;
         this.arrowIndex = arrowIndex;
 
+        this.isHitAnimation = false
         this.isEnd = false;
         this.isHit = false;
         this.x = x;
@@ -252,7 +253,7 @@ export class Arrow {
         }
     }
 
-    detectCollision(rect, circle) {
+    detectCollision(rect, circle) { //본체와 닿았을 때
         var cx, cy
         var angleOfRad = -rect.r;
         var rectCenterX = rect.x + rect.w / 2;
@@ -282,9 +283,54 @@ export class Arrow {
         //console.log('cy', cy)
         //console.log(this.distance(rotateCircleX, rotateCircleY, cx, cy))
         if (this.distance(rotateCircleX, rotateCircleY, cx, cy) < circle.r && this.isHit == false) {
-            console.log("detection");
+            
+            if(this.main.life <= 0) return;
+            this.canvas.className = 'canvas hit'
+            setTimeout(() => {
+                this.canvas.classList = 'canvas'
+            }, 1000)
             this.main.life -= 1;
             this.isHit = true;
+            return true;
+        }
+
+        return false;
+
+    }
+
+    detectShieldCollision(rect, circle) { //방패와 닿았을 때
+        var cx, cy
+        var angleOfRad = -rect.r;
+        var rectCenterX = rect.x + rect.w / 2;
+        var rectCenterY = rect.y + rect.h / 2;
+
+        var rotateCircleX = Math.cos(angleOfRad) * (circle.x - rectCenterX) - Math.sin(angleOfRad) * (circle.y - rectCenterY) + rectCenterX;
+        var rotateCircleY = Math.sin(angleOfRad) * (circle.x - rectCenterX) + Math.cos(angleOfRad) * (circle.y - rectCenterY) + rectCenterY;
+
+        if (rotateCircleX < rect.x) {
+            cx = rect.x;
+        } else if (rotateCircleX > rect.x + rect.w) {
+            cx = rect.x + rect.w;
+        } else {
+            cx = rotateCircleX;
+        }
+
+        if (rotateCircleY < rect.y) {
+            cy = rect.y;
+        } else if (rotateCircleY > rect.y + rect.h) {
+            cy = rect.y + rect.h;
+        } else {
+            cy = rotateCircleY;
+        }
+        //console.log('rotateCircleX', rotateCircleX)
+        //console.log('rotateCircleY', rotateCircleY)
+        //console.log('cx', cx)
+        //console.log('cy', cy)
+        //console.log(this.distance(rotateCircleX, rotateCircleY, cx, cy))
+        if (this.distance(rotateCircleX, rotateCircleY, cx, cy) < circle.r && this.isHit == false) {
+            this.isEnd = true;
+            this.isHit = true;
+            this.main.drawParticle(cx, cy)
             return true;
         }
 
@@ -298,8 +344,19 @@ export class Arrow {
 
     CharCollision() {
         //this.detectCollision(this.hitbox,{x: this.mouseX, y: this.mouseY, r: 10});
-        if(this.shotMotionFlag == false)
+        if(this.shotMotionFlag == false) {
+            if(this.main.nowShieldTime > 0) {
+                let radius = 100
+                this.main.angles.forEach((angle, index) => {
+                    const x = this.mouseX + radius * Math.cos(angle);
+                    const y = this.mouseY + radius * Math.sin(angle);
+                    
+                    this.detectShieldCollision(this.hitbox,{x: x, y: y, r: 30});
+                });
+            }
             this.detectCollision(this.hitbox,{x: this.mouseX, y: this.mouseY, r: 30});
+
+        }
         
         /*
         this.ctx.save();

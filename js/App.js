@@ -5,9 +5,38 @@ import {
 import {
     ClearCanvas
 } from "./ClearCanvas.js"
+import { Items } from "./Items.js";
+
+import {
+    Particles
+} from "./Particles.js";
+
+
+import * as setting from "./setting.js";
+// Import the functions you need from the SDKs you need 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+
 
 class App {
-    constructor() {
+    constructor(nickname) {
+        //보너스 점수
+        this.bonusScore = 0
+
+        this.nickname = nickname;
+        //쉴드 변수
+        this.shieldTime = 7
+        this.nowShieldTime = 0
+        this.angles = [0, Math.PI * 2 / 3, Math.PI * 4 / 3]; // 120도 간격
+        this.shieldRadian = 15;
+        this.shieldImg = new Image();
+        this.shieldImg.src = "/img/shield.png";
+
+        this.lifeImg = new Image()
+        this.lifeImg.src = "/img/heart.png";
         this.score = 0;
         this.life = 3;
         this.gameOver = false;
@@ -15,6 +44,10 @@ class App {
         this.reloadImg = new Image();
         this.reloadImg.src = "img/reload.png";
         this.reloadImgSize = 50;
+
+        //슬로우 아이템 획득
+        this.slowTime = 10
+        this.nowSlowTime = 0
 
         this.charImg = new Image();
         this.charImg.src = "img/char.png";
@@ -47,8 +80,82 @@ class App {
         this.mouseX = this.canvas.width / 2;
         this.mouseY = this.canvas.height / 2;
 
+        this.putItme()
+        this.timeCheck()
+
     }
 
+    
+    timeCheck() {
+        setInterval(() => {
+            if(this.nowSlowTime > 0) {
+                this.nowSlowTime -= 1
+            }
+            if(this.nowShieldTime > 0) {
+                this.nowShieldTime -= 1
+            }
+        }, 1000)
+    }
+    putItme() {
+        setInterval(() => {
+            if(this.gameOver === false) {
+                let item = new Items(app)
+                item.animate()
+            }
+        }, 10000)
+    }
+
+    drawShield() {
+        if(this.nowShieldTime > 0) {
+            const speed = 0.01;
+            const radius = 100;
+            this.angles.forEach((angle, index) => {
+                const x = this.mouseX + radius * Math.cos(angle);
+                const y = this.mouseY + radius * Math.sin(angle);
+        
+                this.ctx.drawImage(this.shieldImg, 0, 0, 512, 512, x, y, 30, 30 );
+                //r : 15
+                //이미지 크기 : 30
+        
+                // 각도 업데이트
+                this.angles[index] += speed;
+            });
+        } 
+        
+
+    }
+
+    //쉴드와 화살이 닿았을 때 파티클
+    drawParticle(x, y) {
+        let particles = new Particles(x, y);
+        particles.createFirework(x, y);
+        particles.animate();
+    }
+
+    inital() {
+        this.bonusScore = 0
+        this.score = 0;
+        this.life = 3;
+        this.gameOver = false;
+        this.nowArrow = null;
+        this.reloadImgSize = 50;
+
+        this.difficulty = 0;
+        this.difficultyControl = [false, false, false, false, false, false, false];
+
+        this.nowSpeed = 20;
+        this.maxSpeed = 20; //70
+
+        this.nowScale = 1;
+        this.maxScale = 1; //3
+
+        this.createTime = 60;
+        this.index = 0;
+        this.arrows = [];
+        this.sec = 1;
+        this.timer = 0;
+        this.frameRate = this.sec / this.createTime;
+    }
     animate(t) {
         if(this.life <= 0)  this.gameOver = true;
 
@@ -63,6 +170,9 @@ class App {
                 let y = this.getRandomInt(0, this.canvas.height);
                 let size = this.getRandomArbitrary(this.nowScale, this.maxScale);
                 let speed = this.getRandomInt(this.nowSpeed, this.maxSpeed);
+                if(this.nowSlowTime > 0) {
+                    speed = 5
+                }
                 let rotateSpeed = this.getRandomInt(70, 120);
                 this.nowArrow = new Arrow(x, y, size, speed, rotateSpeed, this.index, {x: this.mouseX, y:this.mouseY}, this);
                 this.nowArrow.animate();
@@ -120,33 +230,20 @@ class App {
             }  
             this.drawChar();
             this.drawLife();
+            this.drawShield();
         }
-        if(this.gameOver == true)
-            this.drawScore();
+        if(this.gameOver == true) {
+            gameover(this.difficulty + this.bonusScore)
+        } else {
+            hideGameover()
+        }
 
 
     }
     mouseup(e) {
-        if(this.gameOver == true) {
-            let x = e.clientX;
-            let y = e.clientY;
-
-            if((x >= 5 && x <= 85) && (y >= 135 && y <= 195)){
-                location.reload();
-            }
-        }
     }
 
     touchend(e) {
-        if(this.gameOver == true) {
-            let touches = e.changedTouches;
-            let x = touches[0].clientX;
-            let y = touches[0].clientY;
-
-            if((x >= 5 && x <= 85) && (y >= 135 && y <= 195)){
-                location.reload();
-            }
-        }
     }
     mousemove(e) {
         this.mouseX = e.clientX;
@@ -174,61 +271,16 @@ class App {
     }
     
     drawLife() {
-        this.ctx.beginPath();
-        this.ctx.fillStyle = "#EC7063";
-        this.ctx.arc(30, 30, 10, 0, 2 * Math.PI);
-        if(this.life >= 1) this.ctx.fill();
-        this.ctx.stroke();
-        
-        this.ctx.beginPath();
-        this.ctx.fillStyle = "#EC7063";
-        this.ctx.arc(60, 30, 10, 0, 2 * Math.PI);
-        if(this.life >= 2) this.ctx.fill();
-        this.ctx.stroke();
-        
-        this.ctx.beginPath();
-        this.ctx.fillStyle = "#EC7063";
-        this.ctx.arc(90, 30, 10, 0, 2 * Math.PI);
-        if(this.life >= 3) this.ctx.fill();
-        this.ctx.stroke();
-    }
 
-    drawScore() {
-        this.ctx.fillStyle = "black";
-        this.ctx.font = '30px 맑은 고딕';
-        let str = "";
-        let s = Math.floor(this.difficulty / 10);
-        switch(s){
-            case 0: str = "이게 뭐에요?"; break;
-            case 1: str = "이것밖에 안 돼요? 더 해봐요!"; break;
-            case 2: str = "에이 좀 더 잘 해봐요"; break;
-            case 3: str = "잘 피해봐요!"; break;
-            case 4: str = "조금 빠르죠?"; break;
-            case 5: str = "이제 시작이에요"; break;
-            case 6: str = "아쉬워요 ㅜㅜ.."; break;
-            case 7: str = "에잇"; break;
-            case 8: str = "잘하는데요?"; break;
-            case 9: str = "우와?"; break;
-            case 10: str = "대단해요!"; break;
-            default: str = "사람이에요?"; break;
+        for(let i = 1; i <= this.life; i ++) {
+            this.ctx.drawImage(this.lifeImg, 0, 0, 512, 512, 40 * i, 30, 30, 30);
         }
-        
-       
-
-
-        this.ctx.fillText(str, 10, 50);
-        this.ctx.fillText('점수 : ' + this.difficulty, 10, 100);
-
-        this.ctx.save();
-        this.ctx.translate(80, 140);
-        this.ctx.drawImage(this.reloadImg, 0, 0, 512, 512, -this.reloadImgSize/2, -this.reloadImgSize/2, this.reloadImgSize, this.reloadImgSize);
-        //this.ctx.arc(this.mouseX, this.mouseY, 30, 0, 2 * Math.PI);
         this.ctx.restore();
-
-
         
     }
+
     drawChar() {
+      
         let imgSize = 50;
         this.ctx.save();
         this.ctx.translate(this.mouseX, this.mouseY);
@@ -236,16 +288,123 @@ class App {
         //this.ctx.arc(this.mouseX, this.mouseY, 30, 0, 2 * Math.PI);
         this.ctx.restore();
     }
+
 }
 
-window.onload = () => {
-    console.log("hello world");
+export const restart = () => {
+    app.inital()
+    gameoverTrigger = false;
 
-    let clearCanvas = new ClearCanvas();
+    document.querySelector("#score_board").className = '';
+    document.querySelector("#score").textContent = '화이팅!'
+}
+
+export const tutorial = () => {
+    document.querySelector(".tutorial_hidden").className = 'tutorial'
+}
+
+let clearCanvas = null;
+let app = null;
+
+let firebase = null; //파이어베이스 App
+let database = null;  //파이어베이스 데이터베이스
+let getNickname = ''
+
+export const gameStart = (nickname) => {
+    clearCanvas = new ClearCanvas();
     clearCanvas.animate();
+    nickname = nickname.replace(/_/g, "")
+    nickname = nickname + "_" + generateRandomString(7)
+    getNickname = nickname;
 
-    let app = new App();
+    app = new App(nickname);
     app.animate();
 
-
 }
+
+function generateRandomString(length) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
+
+
+const hideGameover = () => {
+
+    document.querySelector("#score_board").className = ""
+    document.querySelector("#score").textContent = '화이팅'
+}
+
+let gameoverTrigger = false; //db 한번만 읽을 수 있도록 설정
+let allScores = [] //모든 점수 받기
+
+
+function writeUserData(userId, value) {
+    set(ref(database, 'users/' + userId), {
+      value: value,
+    });
+  }
+
+const gameover = (score) => {
+    document.querySelector("#score_board").className = "score_board_show"
+    document.querySelector("#score").textContent = score
+
+    if(gameoverTrigger === false) {
+        gameoverTrigger = true;
+
+        
+        if(allScores[getNickname] === undefined)   writeUserData(getNickname, score)
+        else if(allScores[getNickname] < score) {
+            writeUserData(getNickname, score)
+        }
+        const dbRef = ref(getDatabase());
+        get(child(dbRef, `users`)).then((snapshot) => {
+            if (snapshot.exists()) {
+                let data = snapshot.val();
+                let sortedEntries = Object.entries(data).sort((a, b) => b[1].value - a[1].value);
+
+
+                let maxLeng = sortedEntries.length > 5 ? 5 : sortedEntries.length;
+                for(let i = 0; i < maxLeng; i ++) {
+                    if(i < 3) {
+                        document.querySelector(`#ranking${i + 1}`).textContent = i + 1 + '. 👑' + sortedEntries[i][0].split("_")[0]
+                    } else {
+                        document.querySelector(`#ranking${i + 1}`).textContent = i + 1 + '. ' + sortedEntries[i][0].split("_")[0]
+                    }
+                    document.querySelector(`#ranking${i + 1}_score`).textContent = sortedEntries[i][1].value
+                }
+
+            } else {
+                console.log("No data available");
+            }
+            }).catch((error) => {
+            console.error(error);
+        });
+    }
+}
+
+
+const load = () => {
+    // Initialize Firebase
+    firebase = initializeApp(setting.firebaseConfig);
+    database = getDatabase(firebase);
+
+    const dbRef = ref(getDatabase());
+    get(child(dbRef, `users`)).then((snapshot) => {
+        if (snapshot.exists()) {
+            let data = snapshot.val();
+            let sortedEntries = Object.entries(data).sort((a, b) => b[1].value - a[1].value);
+            allScores = sortedEntries;
+        } else {
+            console.log("No data available");
+        }
+        }).catch((error) => {
+        console.error(error);
+    });
+}
+
+load();
