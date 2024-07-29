@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "arrow77",
     "public": "public",
     "ignore": [
       "firebase.json",
